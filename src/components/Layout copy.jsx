@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -16,8 +16,12 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
+  Assignment as ProjectsIcon,
+  Task as TasksIcon,
+  Event as AppointmentsIcon,
   Logout as LogoutIcon,
-  SupportAgent as CallIcon, // Ícone de chamados
+  People as PeopleIcon,
+  SupportAgent as CallIcon, // <-- ícone de chamados
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -26,9 +30,31 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
 
+  // 1. Ler do localStorage o objeto 'user'
   const storedUser = localStorage.getItem('user');
   const userObject = storedUser ? JSON.parse(storedUser) : {};
+
+  // 2. Pegar nome e role
   const userName = userObject.name || 'Usuário';
+  const userRole = userObject.role || '';
+
+  // 3. Itens do menu (Chamados incluso)
+  const menuItems = [
+    { text: 'Projetos', icon: <ProjectsIcon />, path: '/projects' },
+    { text: 'Tarefas', icon: <TasksIcon />, path: '/tasks' },
+    { text: 'Compromissos', icon: <AppointmentsIcon />, path: '/appointments' },
+    { text: 'Clientes', icon: <PeopleIcon />, path: '/clients' },
+    { text: 'Chamados', icon: <CallIcon />, path: '/calls' }, // <-- novo item
+    { text: 'Colaboradores', icon: <PeopleIcon />, path: '/colaboradores', adminOnly: true },
+  ];
+
+  // 4. Filtrar menu com base na role
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (item.adminOnly && userRole !== 'admin') {
+      return false;
+    }
+    return true;
+  });
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -44,16 +70,19 @@ export default function Layout() {
     <div>
       <Toolbar />
       <List>
-        <ListItem
-          button
-          onClick={() => {
-            navigate('/calls');
-            setMobileOpen(false);
-          }}
-        >
-          <ListItemIcon><CallIcon /></ListItemIcon>
-          <ListItemText primary="Chamados" />
-        </ListItem>
+        {filteredMenuItems.map((item) => (
+          <ListItem
+            button
+            key={item.text}
+            onClick={() => {
+              navigate(item.path);
+              setMobileOpen(false);
+            }}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.text} />
+          </ListItem>
+        ))}
       </List>
     </div>
   );
@@ -65,14 +94,15 @@ export default function Layout() {
         <Toolbar>
           <IconButton
             color="inherit"
+            aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
             sx={{ mr: 2, display: { sm: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Chamados
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            Sistema de Gestão
           </Typography>
           <Typography variant="subtitle1" sx={{ mr: 2 }}>
             {userName}
@@ -83,7 +113,12 @@ export default function Layout() {
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+      {/* Menu lateral */}
+      <Box
+        component="nav"
+        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      >
+        {/* Drawer para mobile */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -96,6 +131,7 @@ export default function Layout() {
         >
           {drawer}
         </Drawer>
+        {/* Drawer permanente em telas maiores */}
         <Drawer
           variant="permanent"
           sx={{
@@ -108,6 +144,7 @@ export default function Layout() {
         </Drawer>
       </Box>
 
+      {/* Conteúdo principal */}
       <Box
         component="main"
         sx={{
